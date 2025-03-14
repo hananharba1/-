@@ -1,119 +1,130 @@
-# Miscellaneous
-*.class
-*.lock
-*.log
-*.pyc
-*.swp
-.buildlog/
-.history
+# ng new dynamic-dashboard --routing --style=scss
+cd dynamic-dashboard
+ng add @angular/material
+npm install @ngrx/store @ngrx/effects @ngrx/store-devtools
+ng generate component header
+ng generate component user-list
+ng generate component user-details
+<mat-toolbar>
+  <span>User Dashboard</span>
+  <input matInput [(ngModel)]="searchQuery" (input)="onSearchChange()" placeholder="Search by ID">
+</mat-toolbar>
+searchQuery: string = '';
 
+onSearchChange() {
+  this.userService.getUsers(1).subscribe(data => {
+    this.filteredUsers = data.data.filter(user => user.id.toString().includes(this.searchQuery));
+  });
+}
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
+@Injectable({
+  providedIn: 'root'
+})
+export class UserService {
+  constructor(private http: HttpClient) {}
 
-# Flutter repo-specific
-/bin/cache/
-/bin/internal/bootstrap.bat
-/bin/internal/bootstrap.sh
-/bin/mingit/
-/dev/benchmarks/mega_gallery/
-/dev/bots/.recipe_deps
-/dev/bots/android_tools/
-/dev/devicelab/ABresults*.json
-/dev/docs/doc/
-/dev/docs/flutter.docs.zip
-/dev/docs/lib/
-/dev/docs/pubspec.yaml
-/dev/integration_tests/**/xcuserdata
-/dev/integration_tests/**/Pods
-/packages/flutter/coverage/
-version
-analysis_benchmark.json
+  getUsers(page: number): Observable<any> {
+    return this.http.get(https://reqres.in/api/users?page=${page});
+  }
 
-# packages file containing multi-root paths
-.packages.generated
+  getUserDetails(id: number): Observable<any> {
+    return this.http.get(https://reqres.in/api/users/${id});
+  }
+}import { Component, OnInit } from '@angular/core';
+import { UserService } from '../user.service';
 
-# Flutter/Dart/Pub related
-**/doc/api/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-**/generated_plugin_registrant.dart
-.packages
-.pub-preload-cache/
-.pub/
-build/
-flutter_*.png
-linked_*.ds
-unlinked.ds
-unlinked_spec.ds
+@Component({
+  selector: 'app-user-list',
+  templateUrl: './user-list.component.html',
+  styleUrls: ['./user-list.component.scss']
+})
+export class UserListComponent implements OnInit {
+  users: any[] = [];
+  loading = false;
 
-# Android related
-**/android/**/gradle-wrapper.jar
-.gradle/
-**/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
-**/android/local.properties
-**/android/**/GeneratedPluginRegistrant.java
-**/android/key.properties
-*.jks
+  constructor(private userService: UserService) {}
 
-# iOS/XCode related
-**/ios/**/*.mode1v3
-**/ios/**/*.mode2v3
-**/ios/**/*.moved-aside
-**/ios/**/*.pbxuser
-**/ios/**/*.perspectivev3
-**/ios/**/*sync/
-**/ios/**/.sconsign.dblite
-**/ios/**/.tags*
-**/ios/**/.vagrant/
-**/ios/**/DerivedData/
-**/ios/**/Icon?
-**/ios/**/Pods/
-**/ios/**/.symlinks/
-**/ios/**/profile
-**/ios/**/xcuserdata
-**/ios/.generated/
-**/ios/Flutter/.last_build_id
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Flutter.podspec
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/ephemeral
-**/ios/Flutter/app.flx
-**/ios/Flutter/app.zip
-**/ios/Flutter/flutter_assets/
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/ServiceDefinitions.json
-**/ios/Runner/GeneratedPluginRegistrant.*
+  ngOnInit() {
+    this.loading = true;
+    this.userService.getUsers(1).subscribe((data: any) => {
+      this.users = data.data;
+      this.loading = false;
+    });
+  }
+}
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { UserListComponent } from './user-list/user-list.component';
+import { UserDetailsComponent } from './user-details/user-details.component';
 
-# macOS
-**/Flutter/ephemeral/
-**/Pods/
-**/macos/Flutter/GeneratedPluginRegistrant.swift
-**/macos/Flutter/ephemeral
-**/xcuserdata/
+const routes: Routes = [
+  { path: '', component: UserListComponent },
+  { path: 'user/:id', component: UserDetailsComponent }
+];
 
-# Windows
-**/windows/flutter/generated_plugin_registrant.cc
-**/windows/flutter/generated_plugin_registrant.h
-**/windows/flutter/generated_plugins.cmake
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule {}
+<div class="user-card" *ngFor="let user of users" (click)="goToUserDetails(user.id)">
+  <img [src]="user.avatar" alt="User Avatar">
+  <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+</div>
+import { Router } from '@angular/router';
 
-# Linux
-**/linux/flutter/generated_plugin_registrant.cc
-**/linux/flutter/generated_plugin_registrant.h
-**/linux/flutter/generated_plugins.cmake
+constructor(private router: Router) {}
 
-# Coverage
-coverage/
+goToUserDetails(id: number): void {
+  this.router.navigate([/user/${id}]);
+}
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { UserService } from '../user.service';
 
-# Symbols
-app.*.symbols
+@Component({
+  selector: 'app-user-details',
+  templateUrl: './user-details.component.html',
+  styleUrls: ['./user-details.component.scss']
+})
+export class UserDetailsComponent implements OnInit {
+  user: any;
 
-# Exceptions to above rules.
-!**/ios/**/default.mode1v3
-!**/ios/**/default.mode2v3
-!**/ios/**/default.pbxuser
-!**/ios/**/default.perspectivev3
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
-!/dev/ci/**/Gemfile.lock
+  constructor(private route: ActivatedRoute, private userService: UserService) {}
+
+  ngOnInit() {
+    const id = +this.route.snapshot.paramMap.get('id')!;
+    this.userService.getUserDetails(id).subscribe(data => {
+      this.user = data;
+    });
+  }
+
+  goBack() {
+    window.history.back();
+  }
+}
+<button (click)="goBack()">Back</button>
+<div *ngIf="user">
+  <img [src]="user.avatar" alt="User Avatar">
+  <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+  <p>Email: {{ user.email }}</p>
+</div>
+getUsers(page: number): Observable<any> {
+  const cachedData = localStorage.getItem(users-page-${page});
+  if (cachedData) {
+    return of(JSON.parse(cachedData));
+  } else {
+    return this.http.get(https://reqres.in/api/users?page=${page}).pipe(
+      tap(data => localStorage.setItem(users-page-${page}, JSON.stringify(data)))
+    );
+  }
+}
+<mat-spinner *ngIf="loading" mode="indeterminate"></mat-spinner>
+loading = true;
+this.userService.getUsers(1).subscribe(data => {
+  this.users = data.data;
+  this.loading = false;
+});
